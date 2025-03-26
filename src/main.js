@@ -1,6 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
+import { config } from './config';
 
 // Initialize Mapbox with configuration
 console.log('Initializing Mapbox...');
@@ -8,8 +9,8 @@ console.log('Mapbox Token:', config.mapbox.token ? 'Present' : 'Missing');
 mapboxgl.accessToken = config.mapbox.token;
 
 // Security constants from environment variables
-const MAX_SEARCH_LENGTH = parseInt(import.meta.env.VITE_MAX_SEARCH_LENGTH) || 100;
-const RATE_LIMIT_INTERVAL = parseInt(import.meta.env.VITE_RATE_LIMIT_INTERVAL) || 300;
+const MAX_SEARCH_LENGTH = config.security.maxSearchLength;
+const RATE_LIMIT_INTERVAL = config.security.rateLimitInterval;
 
 // Create map instance
 console.log('Creating map instance...');

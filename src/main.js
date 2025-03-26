@@ -3,12 +3,15 @@ import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Mapbox with environment variable
-console.log('Mapbox Token:', import.meta.env.VITE_MAPBOX_TOKEN);
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+if (!MAPBOX_TOKEN) {
+  console.error('Mapbox token is not set');
+}
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 // Security constants from environment variables
-const MAX_SEARCH_LENGTH = parseInt(import.meta.env.VITE_MAX_SEARCH_LENGTH);
-const RATE_LIMIT_INTERVAL = parseInt(import.meta.env.VITE_RATE_LIMIT_INTERVAL);
+const MAX_SEARCH_LENGTH = parseInt(import.meta.env.VITE_MAX_SEARCH_LENGTH) || 100;
+const RATE_LIMIT_INTERVAL = parseInt(import.meta.env.VITE_RATE_LIMIT_INTERVAL) || 300;
 
 // Create map instance
 const map = new mapboxgl.Map({
@@ -627,11 +630,14 @@ function animate() {
 }
 
 // Initialize Supabase client
-console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY);
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Supabase credentials are not set');
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Memory UI Elements
 const memoryButton = document.getElementById('memory-button');

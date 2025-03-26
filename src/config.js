@@ -15,10 +15,17 @@ export const config = {
 };
 
 // Validate configuration
+console.log('Validating configuration...');
+console.log('Environment variables:', {
+  VITE_MAPBOX_TOKEN: config.mapbox.token ? 'Present' : 'Missing',
+  VITE_SUPABASE_URL: config.supabase.url ? 'Present' : 'Missing',
+  VITE_SUPABASE_ANON_KEY: config.supabase.key ? 'Present' : 'Missing'
+});
+
 if (!config.mapbox.token) {
-  console.error('Mapbox token is not set');
+  console.error('Mapbox token is not set. Please check your environment variables.');
 }
 
 if (!config.supabase.url || !config.supabase.key) {
-  console.error('Supabase credentials are not set');
+  console.error('Supabase credentials are not set. Please check your environment variables.');
 } 

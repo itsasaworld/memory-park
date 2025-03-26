@@ -2,21 +2,20 @@ import mapboxgl from 'mapbox-gl';
 import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Mapbox with environment variable
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-if (!MAPBOX_TOKEN) {
-  console.error('Mapbox token is not set');
-}
-mapboxgl.accessToken = MAPBOX_TOKEN;
+// Initialize Mapbox with configuration
+console.log('Initializing Mapbox...');
+console.log('Mapbox Token:', config.mapbox.token ? 'Present' : 'Missing');
+mapboxgl.accessToken = config.mapbox.token;
 
 // Security constants from environment variables
 const MAX_SEARCH_LENGTH = parseInt(import.meta.env.VITE_MAX_SEARCH_LENGTH) || 100;
 const RATE_LIMIT_INTERVAL = parseInt(import.meta.env.VITE_RATE_LIMIT_INTERVAL) || 300;
 
 // Create map instance
+console.log('Creating map instance...');
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/itsasasworld/cm8o36g5q005g01qdafs70jow',
+  style: config.mapbox.style,
   center: [-87.6298, 41.8781], // Default to Chicago
   zoom: 15,
   pitch: 60,
@@ -630,14 +629,10 @@ function animate() {
 }
 
 // Initialize Supabase client
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Supabase credentials are not set');
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log('Initializing Supabase...');
+console.log('Supabase URL:', config.supabase.url ? 'Present' : 'Missing');
+console.log('Supabase Key:', config.supabase.key ? 'Present' : 'Missing');
+const supabase = createClient(config.supabase.url, config.supabase.key);
 
 // Memory UI Elements
 const memoryButton = document.getElementById('memory-button');

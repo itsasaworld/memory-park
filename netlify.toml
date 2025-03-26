@@ -10,7 +10,15 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Disable secrets scanning for our environment variables
+# Configure secrets scanning
 [secrets]
   scan = true
-  omit_keys = ["VITE_MAPBOX_TOKEN", "VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"] 
+  omit_keys = ["VITE_MAPBOX_TOKEN", "VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"]
+  omit_paths = ["dist/**"]
+
+# Environment variables configuration
+[build.environment]
+  NODE_VERSION = "18"
+  VITE_MAPBOX_TOKEN = ""
+  VITE_SUPABASE_URL = ""
+  VITE_SUPABASE_ANON_KEY = "" 

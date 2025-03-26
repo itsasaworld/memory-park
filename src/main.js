@@ -12,7 +12,7 @@ const RATE_LIMIT_INTERVAL = parseInt(import.meta.env.VITE_RATE_LIMIT_INTERVAL);
 // Create map instance
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v11',
+  style: 'mapbox://styles/itsasasworld/cm8o36g5q005g01qdafs70jow',
   center: [-87.6298, 41.8781], // Default to Chicago
   zoom: 15,
   pitch: 60,

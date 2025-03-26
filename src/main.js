@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Mapbox with environment variable
-mapboxgl.accessToken = 'pk.eyJ1IjoiaXRzYXNhc3dvcmxkIiwiYSI6ImNtOG5xMDg3azAzMnQyanE3aTVjdWg3NGYifQ.FTD4G6jwPf-qdqpEZ73_Qg';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // Security constants from environment variables
 const MAX_SEARCH_LENGTH = parseInt(import.meta.env.VITE_MAX_SEARCH_LENGTH);
@@ -626,8 +626,8 @@ function animate() {
 }
 
 // Initialize Supabase client
-const supabaseUrl = 'https://wfspbewhxxklgilaofgh.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc3BiZXdoeHhrbGdpbGFvZmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzY5MDcsImV4cCI6MjA1ODUxMjkwN30.Fwdz43TET0DJIflkQgIzLdKOdvHSyqefBXvWL20UMj8';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Memory UI Elements

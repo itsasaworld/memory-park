@@ -2,6 +2,7 @@ import mapboxgl from 'mapbox-gl';
 import * as THREE from 'three';
 import { createClient } from '@supabase/supabase-js';
 import { config } from './config';
+import './spotify';  // Import Spotify player
 
 // Initialize Mapbox with configuration
 console.log('Initializing Mapbox...');
@@ -204,6 +205,34 @@ map.on('style.load', () => {
       }
     });
   }
+
+  // Create the memories source if it doesn't exist
+  if (!map.getSource('memories')) {
+    map.addSource('memories', {
+      'type': 'geojson',
+      'data': {
+        'type': 'FeatureCollection',
+        'features': []
+      }
+    });
+  }
+
+  // Add memory markers layer if it doesn't exist
+  if (!map.getLayer('memory-markers')) {
+    map.addLayer({
+      'id': 'memory-markers',
+      'type': 'circle',
+      'source': 'memories',
+      'paint': {
+        'circle-radius': 6,
+        'circle-color': '#4CAF50',
+        'circle-opacity': 0.9
+      }
+    });
+  }
+
+  // Create the glow layer
+  createGlowLayer();
 
   // Wait a bit to ensure sources are loaded
   setTimeout(() => {
@@ -640,26 +669,31 @@ const memoryButton = document.getElementById('memory-button');
 const memoryFormContainer = document.getElementById('memory-form-container');
 const memoryForm = document.getElementById('memory-form');
 const closeButton = document.querySelector('.close-button');
+const imageInput = document.getElementById('memory-image');
+const imagePreview = document.getElementById('image-preview');
 
 // Memory markers storage
 let memoryMarkers = [];
 let selectedLocation = null;
 
-// Add click handler for memory placement
+// Add click handler for map to set location
 map.on('click', (e) => {
-  // Exit pointer lock if active
-  if (document.pointerLockElement === document.body) {
-    document.exitPointerLock();
+  // Check if the click is on any memory-related layer
+  const features = map.queryRenderedFeatures(e.point, {
+    layers: ['memory-markers', 'memory-glow']
+  });
+  
+  // Show the form if:
+  // 1. Clicking on empty space (no features)
+  // 2. Clicking on the glow layer (allows placing memories near existing ones)
+  // Only prevent form if clicking directly on a marker
+  if (features.length === 0 || features[0].layer.id === 'memory-glow') {
+    selectedLocation = {
+      lat: e.lngLat.lat,
+      lng: e.lngLat.lng
+    };
+    memoryFormContainer.style.display = 'block';
   }
-
-  // Store the clicked location
-  selectedLocation = {
-    lat: e.lngLat.lat,
-    lng: e.lngLat.lng
-  };
-
-  // Show the memory form
-  memoryFormContainer.style.display = 'block';
 });
 
 // Show/hide memory form
@@ -679,6 +713,28 @@ closeButton.addEventListener('click', () => {
   selectedLocation = null;
 });
 
+// Handle image preview
+imageInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.alt = 'Preview';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      imagePreview.innerHTML = '';
+      imagePreview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    imagePreview.innerHTML = '';
+  }
+});
+
 // Handle memory form submission
 memoryForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -688,15 +744,61 @@ memoryForm.addEventListener('submit', async (e) => {
     return;
   }
   
-  const title = document.getElementById('memory-title').value;
-  const content = document.getElementById('memory-content').value;
+  const title = document.getElementById('memory-title').value.trim();
+  const content = document.getElementById('memory-content').value.trim();
+  const imageFile = imageInput.files[0];
+  
+  if (!title || !content) {
+    alert('Please fill in both title and content fields.');
+    return;
+  }
   
   try {
+    let imageUrl = null;
+    
+    // Upload image if present
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Show loading state
+      const submitButton = memoryForm.querySelector('button[type="submit"]');
+      const originalText = submitButton.textContent;
+      submitButton.textContent = 'Uploading...';
+      submitButton.disabled = true;
+      
+      try {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('memories')
+          .upload(fileName, imageFile);
+          
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload image: ${uploadError.message}`);
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('memories')
+          .getPublicUrl(fileName);
+          
+        imageUrl = publicUrl;
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
+        throw new Error('Failed to upload image. Please try again.');
+      } finally {
+        // Reset button state
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+      }
+    }
+
     console.log('Attempting to save memory:', {
       title,
       content,
       latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng
+      longitude: selectedLocation.lng,
+      image_url: imageUrl
     });
 
     const { data, error } = await supabase
@@ -707,10 +809,11 @@ memoryForm.addEventListener('submit', async (e) => {
           content,
           latitude: selectedLocation.lat,
           longitude: selectedLocation.lng,
+          image_url: imageUrl,
           created_at: new Date().toISOString()
         }
       ])
-      .select(); // Add this to return the inserted row
+      .select();
       
     if (error) {
       console.error('Supabase error:', error);
@@ -728,6 +831,7 @@ memoryForm.addEventListener('submit', async (e) => {
     
     // Clear form and hide
     memoryForm.reset();
+    imagePreview.innerHTML = '';
     memoryFormContainer.style.display = 'none';
     selectedLocation = null;
     
@@ -755,8 +859,8 @@ function createGlowLayer() {
           'interpolate',
           ['linear'],
           ['zoom'],
-          10, 50,  // Increased base radius
-          20, 250  // Increased max radius
+          10, 30,  // Reduced base radius
+          20, 150  // Reduced max radius
         ],
         'circle-color': [
           'case',
@@ -764,8 +868,8 @@ function createGlowLayer() {
           ['get', 'color'],
           generatePastelColor()
         ],
-        'circle-opacity': 0.9,  // Increased from 0.8
-        'circle-blur': 2.0,     // Reduced blur for sharper glow
+        'circle-opacity': 0.9,
+        'circle-blur': 1.5,     // Reduced blur for sharper edges
         'circle-stroke-width': 0,
         'circle-translate': [0, 0],
         'circle-pitch-alignment': 'map'
@@ -784,6 +888,20 @@ map.on('load', async () => {
         'data': {
           'type': 'FeatureCollection',
           'features': []
+        }
+      });
+    }
+
+    // Add memory markers layer if it doesn't exist
+    if (!map.getLayer('memory-markers')) {
+      map.addLayer({
+        'id': 'memory-markers',
+        'type': 'circle',
+        'source': 'memories',
+        'paint': {
+          'circle-radius': 6,
+          'circle-color': '#4CAF50',
+          'circle-opacity': 0.9
         }
       });
     }
@@ -827,7 +945,7 @@ map.on('load', async () => {
   }
 });
 
-// Modify the addMemoryMarker function
+// Modify the addMemoryMarker function to include image
 function addMemoryMarker(memory) {
   // Create marker element
   const el = document.createElement('div');
@@ -843,7 +961,7 @@ function addMemoryMarker(memory) {
     offset: [0, -5],
     closeButton: true,
     closeOnClick: false,
-    maxWidth: '300px',
+    maxWidth: '250px',
     className: 'memory-popup-container',
     anchor: 'center',
     focusAfterOpen: false
@@ -852,6 +970,7 @@ function addMemoryMarker(memory) {
     <div class="memory-popup">
       <h3>${memory.title}</h3>
       <div class="content-wrapper">
+        ${memory.image_url ? `<img src="${memory.image_url}" alt="${memory.title}">` : ''}
         <p>${memory.content}</p>
         <div class="date">${new Date(memory.created_at).toLocaleDateString()}</div>
       </div>

@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Memory Park</title>
     <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="src/main.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <style>
       body {
         margin: 0;
@@ -186,6 +194,8 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         z-index: 2000;
         width: 400px;
+        max-height: 90vh;
+        overflow-y: auto;
       }
       #memory-form {
         display: flex;
@@ -199,10 +209,46 @@
         border: 1px solid #ddd;
         border-radius: 4px;
         font-size: 16px;
+        box-sizing: border-box;
       }
       #memory-form textarea {
         height: 150px;
         resize: vertical;
+        min-height: 100px;
+        max-height: 300px;
+      }
+      .image-upload-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .image-preview {
+        max-height: 200px;
+        overflow: hidden;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+      }
+      .image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .image-upload-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f5f5f5;
+        border: 1px dashed #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .image-upload-label:hover {
+        background: #eee;
+      }
+      .image-upload-input {
+        display: none;
       }
       #memory-form button {
         padding: 12px;
@@ -240,32 +286,42 @@
       }
       .memory-popup h3 {
         margin: 0;
-        padding: 16px;
+        padding: 0.75rem;
         color: #333;
-        font-size: 18px;
+        font-size: 1rem;
         font-weight: 600;
         border-bottom: 1px solid #eee;
-        background: white;
-        border-radius: 8px 8px 0 0;
       }
       .memory-popup .content-wrapper {
-        padding: 16px;
+        padding: 0.75rem;
         overflow-y: auto;
-        max-height: calc(80vh - 60px); /* Subtract header height */
+        max-height: calc(80vh - 40px);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .memory-popup .content-wrapper img,
+      .memory-popup .memory-image {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        background-color: #f9f9f9;
       }
       .memory-popup p {
         margin: 0;
         color: #666;
-        line-height: 1.5;
-        font-size: 14px;
+        line-height: 1.4;
+        font-size: 0.9rem;
         white-space: pre-wrap;
         word-wrap: break-word;
       }
       .memory-popup .date {
-        font-size: 12px;
+        font-size: 0.8rem;
         color: #999;
-        margin-top: 12px;
-        padding-top: 8px;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
         border-top: 1px solid #eee;
       }
       .mapboxgl-popup-close-button {
@@ -306,6 +362,91 @@
       .mapboxgl-ctrl-top-left {
         display: none !important;
       }
+
+      /* Spotify Player Styles */
+      .spotify-player {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 8px;
+        padding: 12px;
+        color: white;
+        width: 300px;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+      }
+
+      .spotify-player.collapsed {
+        transform: translateY(calc(100% - 40px));
+      }
+
+      .player-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .player-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .player-toggle {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .player-icon {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+      }
+
+      .player-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .now-playing {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .track-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .track-name {
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .track-artist {
+        font-size: 12px;
+        color: #b3b3b3;
+      }
+
+      @media (max-width: 480px) {
+        .spotify-player {
+          width: calc(100% - 40px);
+          bottom: 10px;
+          right: 20px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -313,14 +454,24 @@
       <input type="text" id="search-input" placeholder="Search for a location or enter coordinates (e.g., -87.6298,41.8781)">
       <div id="search-results"></div>
     </div>
-    <div id="help-tooltip">
-      <div class="help-title">Navigation Guide</div>
+    <div id="help-tooltip" class="help-container">
+      <div class="help-header">
+        <div class="help-title">Navigation Guide</div>
+        <button class="help-toggle" onclick="toggleHelp()">
+          <svg class="help-icon" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
       <div class="help-content">
-        <p>Use WASD or arrow keys to move around.</p>
-        <p>Hold Shift to sprint.</p>
-        <p>Space to jump.</p>
-        <p>Click and drag to look around.</p>
-        <p>Press Escape to exit pointer lock.</p>
+        <p><strong>Movement Controls:</strong></p>
+        <p>• W / ↑ — Walk forward<br>
+        • A / ← — Move left<br>
+        • D / → — Move right<br>
+        • Click and drag — Step backward and look around</p>
+        <p><strong>Camera Controls:</strong></p>
+        <p>• Click and drag — Look freely around you<br>
+        • Shift + ↑ / ↓ — Tilt view up or down (like moving your head)</p>
       </div>
     </div>
     <div id="map"></div>
@@ -333,14 +484,47 @@
       Add Memory
     </button>
 
+    <!-- Audio Player -->
+    <div id="spotify-player" class="player-container">
+      <div class="player-header">
+        <h3 class="player-title">Memory Park Sounds</h3>
+        <button class="player-toggle" onclick="togglePlayer()">
+          <svg class="player-icon" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="player-content">
+        <iframe 
+          width="100%" 
+          height="166" 
+          scrolling="no" 
+          frameborder="no" 
+          allow="autoplay" 
+          src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/cokasian/bloodlust&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true">
+        </iframe>
+      </div>
+    </div>
+
     <div id="memory-form-container">
       <form id="memory-form">
         <button type="button" class="close-button">&times;</button>
         <input type="text" id="memory-title" placeholder="Memory Title" required>
         <textarea id="memory-content" placeholder="Share your memory..." required></textarea>
+        <div class="image-upload-container">
+          <label for="memory-image" class="image-upload-label">
+            <span>Add Image</span>
+            <input type="file" id="memory-image" accept="image/*" class="image-upload-input">
+          </label>
+          <div id="image-preview" class="image-preview"></div>
+        </div>
         <button type="submit">Save Memory</button>
       </form>
     </div>
+    <!-- Scripts -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://w.soundcloud.com/player/api.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

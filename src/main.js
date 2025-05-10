@@ -575,7 +575,7 @@ function animate() {
     
     // Only apply acceleration if pointer is locked
     if (moveForward) velocity.z -= ACCELERATION;
-    if (moveBackward) velocity.z += ACCELERATION;
+    if (moveBackward) velocity.z += ACCELERATION;  // Changed back to += for backward movement
     if (moveLeft) velocity.x -= ACCELERATION;
     if (moveRight) velocity.x += ACCELERATION;
     
@@ -593,8 +593,8 @@ function animate() {
     velocity.z = Math.max(Math.min(velocity.z, maxSpeed), -maxSpeed);
 
     // Apply movement relative to camera direction
-    const moveX = velocity.x * Math.cos(camera.rotation.y) + velocity.z * Math.sin(camera.rotation.y);
-    const moveZ = velocity.z * Math.cos(camera.rotation.y) - velocity.x * Math.sin(camera.rotation.y);
+    const moveX = velocity.x * Math.cos(camera.rotation.y) - velocity.z * Math.sin(camera.rotation.y);
+    const moveZ = velocity.x * Math.sin(camera.rotation.y) + velocity.z * Math.cos(camera.rotation.y);
 
     // Update walking animation
     walkingTime += walkingSpeed;

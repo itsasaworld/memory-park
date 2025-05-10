@@ -11,7 +11,7 @@
   NODE_VERSION = "18"
   VITE_MAPBOX_TOKEN = ""
   VITE_SUPABASE_URL = "https://wfspbewhxxklgilaofgh.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc3BiZXdoeHhrbGdpbGFvZmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzY5MDcsImV4cCI6MjA1ODUxMjkwN30.Fwdz43TET0DJIflkQgIzLdKOdvHSyqefBXvWL20UMj8"
+  VITE_SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY"
 
 # Configure secrets scanning
 [secrets]

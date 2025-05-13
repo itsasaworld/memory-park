@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@vercel/analytics@latest/dist/script.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.2.2/dist/heic2any.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic-convert@1.2.4/dist/heic-convert.min.js"></script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
@@ -539,59 +539,78 @@
     <script src="https://w.soundcloud.com/player/api.js"></script>
     <script type="module" src="/src/main.js"></script>
     <script>
-      // Wait for heic2any to be available
-      window.addEventListener('load', function() {
-        if (typeof heic2any === 'undefined') {
-          console.error('HEIC conversion library not loaded');
-          return;
-        }
+      // Update the file input change handler
+      document.getElementById('memory-image').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // Update the file input change handler
-        document.getElementById('memory-image').addEventListener('change', async function(e) {
-          const file = e.target.files[0];
-          if (!file) return;
-
-          // Check if file is HEIC
-          if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
-            try {
-              // Convert HEIC to JPEG
-              const jpegBlob = await heic2any({
-                blob: file,
-                toType: 'image/jpeg',
-                quality: 0.8
-              });
-              
-              // Create a new File object from the converted blob
-              const convertedFile = new File([jpegBlob], file.name.replace(/\.heic$/i, '.jpg'), {
-                type: 'image/jpeg'
-              });
-              
-              // Update the file input with the converted file
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(convertedFile);
-              e.target.files = dataTransfer.files;
-              
-              // Update the preview
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                document.getElementById('image-preview').src = e.target.result;
-                document.getElementById('image-preview').style.display = 'block';
-              };
-              reader.readAsDataURL(convertedFile);
-            } catch (error) {
-              console.error('Error converting HEIC to JPEG:', error);
-              alert('Error converting HEIC image. Please try a different image.');
-            }
-          } else {
-            // Handle regular image files as before
+        // Check if file is HEIC
+        if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+          try {
+            console.log('Processing HEIC file:', file.name);
+            
+            // Show loading state
+            const preview = document.getElementById('image-preview');
+            preview.innerHTML = '<div style="padding: 20px; text-align: center;">Converting HEIC to JPG...</div>';
+            preview.style.display = 'block';
+            
+            // Read the file as ArrayBuffer
+            const arrayBuffer = await file.arrayBuffer();
+            console.log('File read as ArrayBuffer:', arrayBuffer.byteLength, 'bytes');
+            
+            // Convert HEIC to JPEG using heic-convert
+            console.log('Starting HEIC conversion...');
+            const jpegBuffer = await heicConvert({
+              buffer: arrayBuffer,
+              format: 'JPEG',
+              quality: 0.8
+            });
+            console.log('HEIC conversion complete:', jpegBuffer.byteLength, 'bytes');
+            
+            // Create a new File object from the converted buffer
+            const convertedFile = new File([jpegBuffer], file.name.replace(/\.heic$/i, '.jpg'), {
+              type: 'image/jpeg'
+            });
+            console.log('Created converted file:', convertedFile.name, convertedFile.type, convertedFile.size, 'bytes');
+            
+            // Update the file input with the converted file
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(convertedFile);
+            e.target.files = dataTransfer.files;
+            
+            // Update the preview
             const reader = new FileReader();
             reader.onload = function(e) {
-              document.getElementById('image-preview').src = e.target.result;
-              document.getElementById('image-preview').style.display = 'block';
+              preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; height: auto;">`;
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(convertedFile);
+            
+            console.log('HEIC conversion and preview update complete');
+          } catch (error) {
+            console.error('Error converting HEIC to JPEG:', error);
+            console.error('Error details:', {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            });
+            
+            // Show error in preview
+            const preview = document.getElementById('image-preview');
+            preview.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Error converting HEIC image. Please try a different image or convert it to JPG/PNG first.</div>';
+            
+            // Reset the file input
+            e.target.value = '';
           }
-        });
+        } else {
+          // Handle regular image files
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const preview = document.getElementById('image-preview');
+            preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; height: auto;">`;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
       });
     </script>
   </body>
